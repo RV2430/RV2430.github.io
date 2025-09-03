@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wealth Compass</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            transition: background-color 0.3s ease;
+        }
+
+        #message-box {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            transform: translateY(-150%);
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            z-index: 1000;
+        }
+
+        #message-box.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .page {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Custom style to override Chart.js default font */
+        canvas {
+            font-family: 'Inter', sans-serif !important;
+        }
+
+        .feature-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .progress-bar {
+            background-color: #e2e8f0;
+            border-radius: 9999px;
+            height: 0.75rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.5s ease;
+        }
+
+        .income-history-item,
+        .recurring-item {
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        /* Hamburger Menu Styles */
+        .hamburger-menu {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            width: 2rem;
+            height: 2rem;
+            cursor: pointer;
+            z-index: 20;
+        }
+
+        .hamburger-menu span {
+            display: block;
+            width: 100%;
+            height: 3px;
+            background-color: #333;
+            border-radius: 3px;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .hamburger-menu.open span:nth-child(1) {
+            transform: translateY(10px) rotate(45deg);
+        }
+
+        .hamburger-menu.open span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger-menu.open span:nth-child(3) {
+            transform: translateY(-10px) rotate(-45deg);
+        }
+
+        .nav-links-mobile {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background-color: white;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem 0;
+            border-top: 1px solid #e2e8f0;
+            transform: translateY(-150%);
+            opacity: 0;
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            z-index: 10;
+        }
+
+        .nav-links-mobile.open {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 flex flex-col min-h-screen">
+    <div id="message-box" class="bg-blue-600 text-white p-4 rounded-lg shadow-xl opacity-0"></div>
+
+    <!-- Navigation Bar -->
+    <nav class="bg-white shadow-lg py-4 px-4 sm:px-6 md:px-12 flex justify-between items-center relative">
+        <h1 class="font-bold text-lg md:text-xl text-gray-800">Wealth Compass</h1>
+        <!-- Hamburger Menu Button for Mobile -->
+        <button class="hamburger-menu md:hidden" id="hamburger-btn" onclick="toggleMobileMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <!-- Desktop Navigation Links -->
+        <div class="hidden md:flex flex-wrap justify-center space-x-1 sm:space-x-2 md:space-x-8">
+            <button class="nav-btn transition-transform transform hover:scale-105 active:scale-95 text-gray-700 font-semibold px-2 py-2 md:px-4 rounded-xl hover:bg-gray-200" onclick="showPage('home')">Home</button>
+            <button class="nav-btn transition-transform transform hover:scale-105 active:scale-95 text-gray-700 font-semibold px-2 py-2 md:px-4 rounded-xl hover:bg-gray-200" onclick="showPage('add')">Add Expense</button>
+            <button class="nav-btn transition-transform transform hover:scale-105 active:scale-95 text-gray-700 font-semibold px-2 py-2 md:px-4 rounded-xl hover:bg-gray-200" onclick="showPage('history')">History</button>
+            <button class="nav-btn transition-transform transform hover:scale-105 active:scale-95 text-gray-700 font-semibold px-2 py-2 md:px-4 rounded-xl hover:bg-gray-200" onclick="showPage('dashboard')">Dashboard</button>
+            <button class="nav-btn transition-transform transform hover:scale-105 active:scale-95 text-gray-700 font-semibold px-2 py-2 md:px-4 rounded-xl hover:bg-gray-200" onclick="showPage('income')">Add Income</button>
+            <button class="nav-btn transition-transform transform hover:scale-105 active:scale-95 text-gray-700 font-semibold px-2 py-2 md:px-4 rounded-xl hover:bg-gray-200" onclick="showPage('budgets')">Budgets</button>
+            <button class="nav-btn transition-transform transform hover:scale-105 active:scale-95 text-gray-700 font-semibold px-2 py-2 md:px-4 rounded-xl hover:bg-gray-200" onclick="showPage('recurring')">Recurring</button>
+        </div>
+        <!-- Mobile Navigation Links (Hidden by default) -->
+        <div id="mobile-nav-links" class="nav-links-mobile md:hidden">
+            <button class="nav-btn w-full text-center py-2" onclick="showPage('home'); toggleMobileMenu();">Home</button>
+            <button class="nav-btn w-full text-center py-2" onclick="showPage('add'); toggleMobileMenu();">Add Expense</button>
+            <button class="nav-btn w-full text-center py-2" onclick="showPage('history'); toggleMobileMenu();">History</button>
+            <button class="nav-btn w-full text-center py-2" onclick="showPage('dashboard'); toggleMobileMenu();">Dashboard</button>
+            <button class="nav-btn w-full text-center py-2" onclick="showPage('income'); toggleMobileMenu();">Add Income</button>
+            <button class="nav-btn w-full text-center py-2" onclick="showPage('budgets'); toggleMobileMenu();">Budgets</button>
+            <button class="nav-btn w-full text-center py-2" onclick="showPage('recurring'); toggleMobileMenu();">Recurring</button>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow flex items-start justify-center p-4 sm:p-6 md:p-8">
+        <div class="w-full max-w-7xl bg-white rounded-2xl shadow-2xl p-4 sm:p-6 md:p-8 transition-all duration-300">
+
+            <!-- Home Page -->
+            <div id="home" class="container page">
+                <h1 class="text-3xl md:text-4xl font-extrabold text-center text-gray-800 mb-6">✨ Welcome to Wealth Compass</h1>
+                <p class="text-center text-gray-600 max-w-xl mx-auto">
+                    Your personal guide to financial awareness. Track your expenses, analyze spending trends, and take control of your money with simple and powerful insights.
+                </p>
+                <div class="mt-10 grid md:grid-cols-3 gap-8 text-center">
+                    <div class="feature-card p-6 bg-blue-50 rounded-lg shadow-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-blue-500 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v1m-10-8h10m4-1h2a2 2 0 012 2v2a2 2 0 01-2 2h-2m-10-4h2m4 0h2m4 0h2m-4 0v2m-12-6h2m4 0h2m4 0h2m-4 0v2m-12-6h2m4 0h2m4 0h2" />
+                        </svg>
+                        <h3 class="font-bold text-gray-800">Smart Tracking</h3>
+                        <p class="text-sm text-gray-500 mt-2">Log expenses with details and dates to keep an organized record of your spending.</p>
+                    </div>
+                    <div class="feature-card p-6 bg-green-50 rounded-lg shadow-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-green-500 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l2 2 4-4m5 4l-4-4m-4 4l-4-4m-4 4l-4-4" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6a6 6 0 100 12 6 6 0 000-12z" />
+                        </svg>
+                        <h3 class="font-bold text-gray-800">Clear Insights</h3>
+                        <p class="text-sm text-gray-500 mt-2">Visualize your financial habits with charts and graphs on the dashboard.</p>
+                    </div>
+                    <div class="feature-card p-6 bg-yellow-50 rounded-lg shadow-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-yellow-500 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                        </svg>
+                        <h3 class="font-bold text-gray-800">Data Export</h3>
+                        <p class="text-sm text-gray-500 mt-2">Download your expense data as a CSV file to use with your favorite spreadsheet software.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Expense Page -->
+            <div id="add" class="container page" style="display:none;">
+                <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Add New Expense</h2>
+                <div class="space-y-4">
+                    <input type="text" id="desc" placeholder="Description" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 p-3 border">
+                    <input type="number" id="amount" placeholder="Amount (₹)" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 p-3 border">
+                    <input type="date" id="date" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 p-3 border">
+                    <select id="category" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 p-3 border">
+                        <option value="Food">Food</option>
+                        <option value="Groceries">Groceries</option>
+                        <option value="Travel">Travel</option>
+                        <option value="Shopping">Shopping</option>
+                        <option value="Bills">Bills</option>
+                        <option value="Healthcare">Healthcare</option>
+                        <option value="Education">Education</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <button class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50" onclick="addExpense()">Add Expense</button>
+                </div>
+            </div>
+
+            <!-- Add Income Page -->
+            <div id="income" class="container page" style="display:none;">
+                <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Add Income</h2>
+                <div class="space-y-4">
+                    <input type="text" id="income-desc" placeholder="Source" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 p-3 border">
+                    <input type="number" id="income-amount" placeholder="Amount (₹)" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 p-3 border">
+                    <input type="date" id="income-date" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 p-3 border">
+                    <select id="income-category" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 p-3 border">
+                        <option value="Salary">Salary</option>
+                        <option value="Freelance">Freelance</option>
+                        <option value="Investment">Investment</option>
+                        <option value="Gifts">Gifts</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <button class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-green-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50" onclick="addIncome()">Add Income</button>
+                </div>
+                <div class="mt-6">
+                    <h3 class="text-xl font-bold mb-4">Income History</h3>
+                    <div id="income-history-list" class="space-y-2 text-gray-700"></div>
+                </div>
+            </div>
+
+            <!-- Budgeting Page -->
+            <div id="budgets" class="container page" style="display:none;">
+                <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Set Budgets</h2>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4 items-center">
+                        <select id="budget-category" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 p-3 border">
+                            <option value="Food">Food</option>
+                            <option value="Groceries">Groceries</option>
+                            <option value="Travel">Travel</option>
+                            <option value="Shopping">Shopping</option>
+                            <option value="Bills">Bills</option>
+                            <option value="Healthcare">Healthcare</option>
+                            <option value="Education">Education</option>
+                            <option value="Entertainment">Entertainment</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <input type="number" id="budget-amount" placeholder="Budget (₹)" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 p-3 border">
+                    </div>
+                    <button class="w-full bg-purple-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-purple-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50" onclick="setBudget()">Set Budget</button>
+                </div>
+                <div class="mt-6">
+                    <h3 class="text-xl font-bold mb-4">Current Budgets</h3>
+                    <div id="budgets-list" class="space-y-2 text-gray-700"></div>
+                </div>
+            </div>
+
+            <!-- Recurring Expenses Page -->
+            <div id="recurring" class="container page" style="display:none;">
+                <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Recurring Expenses</h2>
+                <div class="space-y-4">
+                    <input type="text" id="recurring-desc" placeholder="Description" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 p-3 border">
+                    <input type="number" id="recurring-amount" placeholder="Amount (₹)" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 p-3 border">
+                    <select id="recurring-category" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 p-3 border">
+                        <option value="Food">Food</option>
+                        <option value="Groceries">Groceries</option>
+                        <option value="Travel">Travel</option>
+                        <option value="Shopping">Shopping</option>
+                        <option value="Bills">Bills</option>
+                        <option value="Healthcare">Healthcare</option>
+                        <option value="Education">Education</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <select id="recurring-frequency" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50 p-3 border">
+                        <option value="monthly">Monthly</option>
+                        <option value="weekly">Weekly</option>
+                    </select>
+                    <button class="w-full bg-yellow-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-yellow-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50" onclick="addRecurring()">Add Recurring Expense</button>
+                </div>
+                <div class="mt-6">
+                    <h3 class="text-xl font-bold mb-4">Scheduled Expenses</h3>
+                    <div id="recurring-list" class="space-y-2 text-gray-700"></div>
+                </div>
+            </div>
+
+
+            <!-- Expense History Page -->
+            <div id="history" class="container page" style="display:none;">
+                <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Expense History</h2>
+                <div class="bg-gray-50 rounded-lg p-4 shadow-inner">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 rounded-lg overflow-hidden">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount (₹)</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table-body" class="bg-white divide-y divide-gray-200">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="text-center mt-6">
+                    <button class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-green-700 transition duration-300 ease-in-out" onclick="downloadCSV()">⬇ Download CSV</button>
+                </div>
+            </div>
+
+            <!-- Dashboard Page -->
+            <div id="dashboard" class="container page" style="display:none;">
+                <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Expense Dashboard</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="bg-green-100 p-6 rounded-xl shadow-inner text-center">
+                        <h3 class="text-lg font-semibold text-gray-800">Total Income</h3>
+                        <p id="total-income" class="text-3xl font-bold mt-2 text-green-600">₹0.00</p>
+                    </div>
+                    <div class="bg-red-100 p-6 rounded-xl shadow-inner text-center">
+                        <h3 class="text-lg font-semibold text-gray-800">Total Expenses</h3>
+                        <p id="total-expenses" class="text-3xl font-bold mt-2 text-red-600">₹0.00</p>
+                    </div>
+                    <div class="bg-blue-100 p-6 rounded-xl shadow-inner text-center">
+                        <h3 class="text-lg font-semibold text-gray-800">Net Balance</h3>
+                        <p id="net-balance" class="text-3xl font-bold mt-2 text-blue-600">₹0.00</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+                    <div class="bg-gray-50 rounded-xl p-4 shadow-inner">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Expenses by Category</h3>
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                    <div class="bg-gray-50 rounded-xl p-4 shadow-inner">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Daily Spending Trend</h3>
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+                <div class="mt-8">
+                    <div class="bg-gray-50 rounded-xl p-4 shadow-inner">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Budget Progress</h3>
+                        <div id="budget-progress-container" class="space-y-4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- JavaScript Logic -->
+    <script>
+        let expenses = JSON.parse(localStorage.getItem("expenses")) || [];
+        let income = JSON.parse(localStorage.getItem("income")) || [];
+        let budgets = JSON.parse(localStorage.getItem("budgets")) || {};
+        let recurringExpenses = JSON.parse(localStorage.getItem("recurringExpenses")) || [];
+
+        const chartColors = ["#ef4444", "#3b82f6", "#f59e0b", "#10b981", "#8b5cf6", "#ec4899", "#6b7280", "#c084fc", "#f87171"];
+        let categoryChartObj, trendChartObj;
+
+        // Function to toggle the mobile navigation menu
+        function toggleMobileMenu() {
+            const mobileMenu = document.getElementById('mobile-nav-links');
+            const hamburgerBtn = document.getElementById('hamburger-btn');
+            mobileMenu.classList.toggle('open');
+            hamburgerBtn.classList.toggle('open');
+        }
+
+        // Function to check and add recurring expenses on app load
+        function checkAndAddRecurringExpenses() {
+            const today = new Date();
+            let lastCheckDate = localStorage.getItem('lastCheckDate');
+            if (!lastCheckDate) {
+                localStorage.setItem('lastCheckDate', today.toISOString());
+                return;
+            }
+
+            const lastCheck = new Date(lastCheckDate);
+            recurringExpenses.forEach(rec => {
+                const lastAdded = new Date(rec.lastAddedDate);
+
+                if (rec.frequency === 'monthly') {
+                    // Check if a new month has started since the last check
+                    if (today.getMonth() !== lastAdded.getMonth() || today.getFullYear() !== lastAdded.getFullYear()) {
+                        const newExpense = {
+                            desc: rec.desc,
+                            amount: rec.amount,
+                            category: rec.category,
+                            date: today.toLocaleDateString()
+                        };
+                        expenses.push(newExpense);
+                        rec.lastAddedDate = today.toISOString();
+                        showMessage(`Added monthly expense: ${rec.desc}`);
+                    }
+                }
+                // Add more frequencies like 'weekly' or 'yearly' here
+            });
+
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+            localStorage.setItem('recurringExpenses', JSON.stringify(recurringExpenses));
+            localStorage.setItem('lastCheckDate', today.toISOString());
+        }
+
+        function showMessage(message, isError = false) {
+            const messageBox = document.getElementById('message-box');
+            messageBox.textContent = message;
+            messageBox.classList.remove('bg-blue-600', 'bg-red-600');
+            messageBox.classList.add(isError ? 'bg-red-600' : 'bg-blue-600');
+            messageBox.classList.add('show');
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 3000);
+        }
+
+        function showPage(pageId) {
+            document.querySelectorAll(".page").forEach(p => p.style.display = "none");
+            const page = document.getElementById(pageId);
+            if (page) {
+                page.style.display = "block";
+            }
+
+            if (pageId === "history") renderHistory();
+            if (pageId === "dashboard") renderDashboard();
+            if (pageId === "income") renderIncomeHistory();
+            if (pageId === "budgets") renderBudgets();
+            if (pageId === "recurring") renderRecurring();
+        }
+
+        function addExpense() {
+            const desc = document.getElementById("desc").value;
+            const amount = parseFloat(document.getElementById("amount").value);
+            const date = document.getElementById("date").value;
+            const category = document.getElementById("category").value;
+            const formattedDate = date ? new Date(date).toLocaleDateString() : new Date().toLocaleDateString();
+
+            if (!desc || isNaN(amount) || amount <= 0) {
+                showMessage("Please enter a valid description and a positive amount.", true);
+                return;
+            }
+
+            const expense = {
+                desc,
+                amount,
+                category,
+                date: formattedDate
+            };
+            expenses.push(expense);
+            localStorage.setItem("expenses", JSON.stringify(expenses));
+
+            showMessage("Expense added successfully!");
+            document.getElementById("desc").value = "";
+            document.getElementById("amount").value = "";
+            document.getElementById("date").value = "";
+            showPage("history");
+        }
+
+        function addIncome() {
+            const desc = document.getElementById("income-desc").value;
+            const amount = parseFloat(document.getElementById("income-amount").value);
+            const date = document.getElementById("income-date").value;
+            const category = document.getElementById("income-category").value;
+            const formattedDate = date ? new Date(date).toLocaleDateString() : new Date().toLocaleDateString();
+
+            if (!desc || isNaN(amount) || amount <= 0) {
+                showMessage("Please enter a valid source and a positive amount.", true);
+                return;
+            }
+
+            const incomeItem = {
+                desc,
+                amount,
+                date: formattedDate,
+                category
+            };
+            income.push(incomeItem);
+            localStorage.setItem("income", JSON.stringify(income));
+            showMessage("Income added successfully!");
+            document.getElementById("income-desc").value = "";
+            document.getElementById("income-amount").value = "";
+            document.getElementById("income-date").value = "";
+            renderIncomeHistory();
+        }
+
+        function deleteIncome(i) {
+            income.splice(i, 1);
+            localStorage.setItem("income", JSON.stringify(income));
+            renderIncomeHistory();
+            showMessage("Income deleted.");
+        }
+
+        function renderIncomeHistory() {
+            const list = document.getElementById("income-history-list");
+            list.innerHTML = "";
+            if (income.length === 0) {
+                list.innerHTML = '<p class="text-gray-500 text-center">No income added yet.</p>';
+                return;
+            }
+            income.forEach((item, i) => {
+                let div = document.createElement('div');
+                div.className = "p-4 rounded-lg bg-gray-100 flex justify-between items-center income-history-item";
+                div.innerHTML = `
+                    <div>
+                        <p class="font-bold">${item.desc}</p>
+                        <p class="text-sm text-gray-500">${item.date}</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <p class="font-bold text-green-600">₹${item.amount.toFixed(2)}</p>
+                        <button class="delete-btn bg-red-500 text-white p-2 rounded-full shadow-sm hover:bg-red-600 transition-colors" onclick="deleteIncome(${i})">❌</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function setBudget() {
+            const category = document.getElementById("budget-category").value;
+            const amount = parseFloat(document.getElementById("budget-amount").value);
+
+            if (isNaN(amount) || amount <= 0) {
+                showMessage("Please enter a valid positive budget amount.", true);
+                return;
+            }
+            budgets[category] = amount;
+            localStorage.setItem("budgets", JSON.stringify(budgets));
+            showMessage("Budget set successfully!");
+            document.getElementById("budget-amount").value = "";
+            renderBudgets();
+        }
+
+        function deleteBudget(category) {
+            delete budgets[category];
+            localStorage.setItem("budgets", JSON.stringify(budgets));
+            renderBudgets();
+            showMessage("Budget deleted.");
+        }
+
+        function renderBudgets() {
+            const list = document.getElementById("budgets-list");
+            list.innerHTML = "";
+            const categories = Object.keys(budgets);
+            if (categories.length === 0) {
+                list.innerHTML = '<p class="text-gray-500 text-center">No budgets set yet.</p>';
+                return;
+            }
+            categories.forEach(category => {
+                let div = document.createElement('div');
+                div.className = "p-4 rounded-lg bg-gray-100 flex justify-between items-center";
+                div.innerHTML = `
+                    <div>
+                        <p class="font-bold">${category}</p>
+                        <p class="text-sm text-gray-500">Budget: ₹${budgets[category].toFixed(2)}</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button class="delete-btn bg-red-500 text-white p-2 rounded-full shadow-sm hover:bg-red-600 transition-colors" onclick="deleteBudget('${category}')">❌</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function addRecurring() {
+            const desc = document.getElementById("recurring-desc").value;
+            const amount = parseFloat(document.getElementById("recurring-amount").value);
+            const category = document.getElementById("recurring-category").value;
+            const frequency = document.getElementById("recurring-frequency").value;
+
+            if (!desc || isNaN(amount) || amount <= 0) {
+                showMessage("Please enter a valid description and a positive amount.", true);
+                return;
+            }
+            const recurringItem = {
+                desc,
+                amount,
+                category,
+                frequency,
+                lastAddedDate: new Date().toISOString()
+            };
+            recurringExpenses.push(recurringItem);
+            localStorage.setItem("recurringExpenses", JSON.stringify(recurringExpenses));
+            showMessage("Recurring expense added!");
+            document.getElementById("recurring-desc").value = "";
+            document.getElementById("recurring-amount").value = "";
+            renderRecurring();
+        }
+
+        function deleteRecurring(i) {
+            recurringExpenses.splice(i, 1);
+            localStorage.setItem("recurringExpenses", JSON.stringify(recurringExpenses));
+            renderRecurring();
+            showMessage("Recurring expense deleted.");
+        }
+
+        function renderRecurring() {
+            const list = document.getElementById("recurring-list");
+            list.innerHTML = "";
+            if (recurringExpenses.length === 0) {
+                list.innerHTML = '<p class="text-gray-500 text-center">No recurring expenses set.</p>';
+                return;
+            }
+            recurringExpenses.forEach((item, i) => {
+                let div = document.createElement('div');
+                div.className = "p-4 rounded-lg bg-gray-100 flex justify-between items-center recurring-item";
+                div.innerHTML = `
+                    <div>
+                        <p class="font-bold">${item.desc}</p>
+                        <p class="text-sm text-gray-500">Amount: ₹${item.amount.toFixed(2)} | Category: ${item.category} | Frequency: ${item.frequency}</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button class="delete-btn bg-red-500 text-white p-2 rounded-full shadow-sm hover:bg-red-600 transition-colors" onclick="deleteRecurring(${i})">❌</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function renderHistory() {
+            const tableBody = document.getElementById("history-table-body");
+            tableBody.innerHTML = "";
+            if (expenses.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="5" class="py-4 text-gray-500 text-center">No expenses added yet.</td></tr>';
+                return;
+            }
+            expenses.forEach((exp, i) => {
+                let row = `
+                <tr class="hover:bg-gray-100 transition-colors">
+                    <td class="px-6 py-4 whitespace-nowrap">${exp.desc}</td>
+                    <td class="px-6 py-4 whitespace-nowrap font-bold text-green-600">₹${exp.amount.toFixed(2)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${exp.category}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${exp.date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <button class="text-red-600 hover:text-red-900 transition-colors" onclick="deleteExpense(${i})">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 112 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        function deleteExpense(i) {
+            expenses.splice(i, 1);
+            localStorage.setItem("expenses", JSON.stringify(expenses));
+            renderHistory();
+            showMessage("Expense deleted.");
+        }
+
+        function renderDashboard() {
+            const totalIncome = income.reduce((sum, item) => sum + item.amount, 0);
+            const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+            const netBalance = totalIncome - totalExpenses;
+
+            document.getElementById("total-income").textContent = `₹${totalIncome.toFixed(2)}`;
+            document.getElementById("total-expenses").textContent = `₹${totalExpenses.toFixed(2)}`;
+            document.getElementById("net-balance").textContent = `₹${netBalance.toFixed(2)}`;
+
+            const balanceEl = document.getElementById("net-balance");
+            balanceEl.classList.remove('text-green-600', 'text-red-600', 'text-blue-600');
+            if (netBalance > 0) {
+                balanceEl.classList.add('text-green-600');
+            } else if (netBalance < 0) {
+                balanceEl.classList.add('text-red-600');
+            } else {
+                balanceEl.classList.add('text-blue-600');
+            }
+
+            renderCategoryChart();
+            renderTrendChart();
+            renderBudgetProgress();
+        }
+
+        function renderCategoryChart() {
+            if (categoryChartObj) categoryChartObj.destroy();
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            const categoryData = expenses.reduce((acc, exp) => {
+                acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
+                return acc;
+            }, {});
+
+            categoryChartObj = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(categoryData),
+                    datasets: [{
+                        data: Object.values(categoryData),
+                        backgroundColor: chartColors,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    family: 'Inter'
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTrendChart() {
+            if (trendChartObj) trendChartObj.destroy();
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            const dailyData = expenses.reduce((acc, exp) => {
+                acc[exp.date] = (acc[exp.date] || 0) + exp.amount;
+                return acc;
+            }, {});
+            const sortedDates = Object.keys(dailyData).sort((a, b) => new Date(a) - new Date(b));
+            const amounts = sortedDates.map(date => dailyData[date]);
+
+            trendChartObj = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sortedDates,
+                    datasets: [{
+                        label: 'Spending',
+                        data: amounts,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Date',
+                                font: {
+                                    family: 'Inter',
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Amount (₹)',
+                                font: {
+                                    family: 'Inter',
+                                    weight: 'bold'
+                                }
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderBudgetProgress() {
+            const container = document.getElementById('budget-progress-container');
+            container.innerHTML = "";
+            const totalExpensesByCategory = expenses.reduce((acc, exp) => {
+                acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
+                return acc;
+            }, {});
+
+            const categories = Object.keys(budgets);
+            if (categories.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center">No budgets set. Set a budget to see your progress here!</p>';
+                return;
+            }
+
+            categories.forEach(category => {
+                const spent = totalExpensesByCategory[category] || 0;
+                const budgetAmount = budgets[category];
+                const percentage = (spent / budgetAmount) * 100;
+                const progressColor = percentage < 50 ? 'bg-green-500' : (percentage < 90 ? 'bg-yellow-500' : 'bg-red-500');
+
+                let card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-lg shadow";
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-semibold text-gray-800">${category}</span>
+                        <span class="text-sm font-medium text-gray-600">₹${spent.toFixed(2)} / ₹${budgetAmount.toFixed(2)}</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill ${progressColor}" style="width: ${Math.min(100, percentage)}%;"></div>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-2">${percentage.toFixed(1)}% of budget spent</p>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function downloadCSV() {
+            let csv = 'Description,Amount,Category,Date\n';
+            expenses.forEach(exp => {
+                csv += `${exp.desc},${exp.amount},${exp.category},${exp.date}\n`;
+            });
+
+            const blob = new Blob([csv], {
+                type: 'text/csv;charset=utf-8;'
+            });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "expense_history.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showMessage("CSV file downloaded!");
+        }
+
+        // Initialize
+        checkAndAddRecurringExpenses();
+        showPage("home");
+    </script>
+</body>
+
+</html>
